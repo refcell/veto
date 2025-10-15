@@ -1,3 +1,5 @@
+//! Contains the CLI logic for the veto application.
+
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 

@@ -1,3 +1,5 @@
+//! Telemetry initializers.
+
 /// Initialize the tracing subscriber, honoring environment filters when provided.
 pub(crate) fn init() {
     let _ = tracing_subscriber::fmt()
