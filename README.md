@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="./assets/banner.png" alt="veto banner placeholder" width="35%" align="center">
+  <img src="./assets/logo.png" alt="veto banner placeholder" width="35%" align="center">
 </h1>
 
 <h4 align="center">
