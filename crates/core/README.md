@@ -16,7 +16,7 @@ use veto_config::{resolve_config, Overrides};
 use veto_core::run;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = resolve_config(None, Overrides::default())?;
     run(config).await?;
     Ok(())

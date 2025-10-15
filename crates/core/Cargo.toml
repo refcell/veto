@@ -19,7 +19,6 @@ workspace = true
 axum = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
-hyper = { workspace = true }
 hyper-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -32,3 +31,4 @@ veto-config = { workspace = true }
 http = { workspace = true }
 rstest = { workspace = true }
 tokio = { workspace = true }
+tower = { workspace = true }

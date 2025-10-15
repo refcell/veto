@@ -12,6 +12,7 @@ Configuration management for the Veto JSON-RPC proxy.
 ## Usage
 
 ```rust
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 use std::path::Path;
 use veto_config::{load_file, resolve_config, Overrides};
 
@@ -21,6 +22,8 @@ let config = resolve_config(file, overrides)?;
 
 println!("Proxy listening on {}", config.bind_address());
 println!("Forwarding to {}", config.upstream_url());
+# Ok(())
+# }
 ```
 
 ## Contributing

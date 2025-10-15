@@ -14,8 +14,8 @@ pub enum ProxyError {
     Body(Box<dyn std::error::Error + Send + Sync>),
     /// Failed to reach upstream.
     #[error("upstream request failed: {0}")]
-    Upstream(hyper::Error),
+    Upstream(hyper_util::client::legacy::Error),
     /// Failed to construct upstream URI for forwarding.
     #[error("failed to construct upstream URI: {0}")]
-    BadUpstreamUri(http::Error),
+    BadUpstreamUri(http::uri::InvalidUriParts),
 }

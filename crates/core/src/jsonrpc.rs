@@ -29,7 +29,7 @@ pub(crate) fn parse_json_rpc(body: &[u8]) -> Result<JsonRpcRequest, JsonRpcError
 
     let value: Value = serde_json::from_slice(body).map_err(JsonRpcError::InvalidJson)?;
 
-    let request = match value {
+    let request: JsonRpcRequest = match value {
         Value::Object(_) => serde_json::from_value(value).map_err(JsonRpcError::InvalidJson)?,
         Value::Array(_) => {
             return Err(JsonRpcError::Unsupported(

@@ -12,7 +12,7 @@ pub struct Config {
 
 impl Config {
     /// Construct a new [`Config`].
-    pub fn new(
+    pub const fn new(
         bind_address: SocketAddr,
         upstream_url: Uri,
         blocked_methods: HashSet<String>,
@@ -25,17 +25,17 @@ impl Config {
     }
 
     /// Address the proxy server will bind to.
-    pub fn bind_address(&self) -> SocketAddr {
+    pub const fn bind_address(&self) -> SocketAddr {
         self.bind_address
     }
 
     /// Upstream JSON-RPC endpoint.
-    pub fn upstream_url(&self) -> &Uri {
+    pub const fn upstream_url(&self) -> &Uri {
         &self.upstream_url
     }
 
     /// Blocked JSON-RPC method names (lowercase).
-    pub fn blocked_methods(&self) -> &HashSet<String> {
+    pub const fn blocked_methods(&self) -> &HashSet<String> {
         &self.blocked_methods
     }
 }

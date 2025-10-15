@@ -1,5 +1,5 @@
 use crate::errors::ProxyError;
-use crate::jsonrpc::{JsonRpcError, JsonRpcRequest, error_response, parse_json_rpc};
+use crate::jsonrpc::{JsonRpcError, error_response, parse_json_rpc};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::State;
@@ -39,7 +39,7 @@ impl AppState {
         })
     }
 
-    pub(crate) fn bind_address(&self) -> SocketAddr {
+    pub(crate) const fn bind_address(&self) -> SocketAddr {
         self.bind_address
     }
 }
@@ -90,7 +90,8 @@ async fn process_request(state: &AppState, req: Request<Body>) -> Result<Respons
         .client
         .request(forward_request)
         .await
-        .map_err(|error| HandlerError::from(ProxyError::Upstream(error)))?;
+        .map_err(|error| HandlerError::from(ProxyError::Upstream(error)))?
+        .map(Body::new);
 
     Ok(response)
 }
@@ -132,29 +133,24 @@ enum HandlerError {
 
 impl From<ProxyError> for HandlerError {
     fn from(error: ProxyError) -> Self {
-        HandlerError::Internal(error)
+        Self::Internal(error)
     }
 }
 
 impl From<JsonRpcError> for HandlerError {
     fn from(error: JsonRpcError) -> Self {
-        HandlerError::JsonRpc(error_response(error))
+        Self::JsonRpc(error_response(error))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::routing::post;
-    use axum::{Json, Router as TestRouter};
     use http::{Request, StatusCode};
-    use hyper_util::client::legacy::Client;
-    use hyper_util::client::legacy::connect::HttpConnector;
-    use hyper_util::rt::TokioExecutor;
     use rstest::rstest;
-    use serde_json::json;
+    use serde_json::{Value, json};
     use std::collections::HashSet;
-    use tokio::net::TcpListener;
+    use tower::util::ServiceExt;
 
     #[tokio::test]
     async fn blocked_method_response_contains_message() {
@@ -185,31 +181,14 @@ mod tests {
 
     #[tokio::test]
     async fn end_to_end_blocks_configured_method() {
-        let (upstream, upstream_handle) = spawn_echo_server().await;
         let config = Config::new(
             "127.0.0.1:0".parse().unwrap(),
-            format!("http://{}", upstream).parse().unwrap(),
+            "http://127.0.0.1:8545".parse().unwrap(),
             HashSet::from([String::from("eth_sendtransaction")]),
         );
 
-        let listener = TcpListener::bind(config.bind_address())
-            .await
-            .expect("bind");
-        let bind_addr = listener.local_addr().unwrap();
-
         let state = AppState::try_from_config(config).unwrap();
-        let router = router(state);
-
-        let server = tokio::spawn(async move {
-            axum::serve(listener, router)
-                .with_graceful_shutdown(async {})
-                .await
-                .unwrap();
-        });
-
-        let mut connector = HttpConnector::new();
-        connector.enforce_http(false);
-        let client = Client::builder(TokioExecutor::new()).build(connector);
+        let app = router(state);
         let payload = json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -217,14 +196,14 @@ mod tests {
             "params": []
         });
 
-        let uri = format!("http://{bind_addr}/").parse().unwrap();
         let request = Request::builder()
             .method("POST")
-            .uri(uri)
+            .uri("/")
             .header("content-type", "application/json")
             .body(Body::from(payload.to_string()))
             .unwrap();
-        let response = client.request(request).await.unwrap();
+
+        let response = app.clone().oneshot(request).await.expect("proxy response");
         assert_eq!(response.status(), StatusCode::OK);
         let bytes = http_body_util::BodyExt::collect(response.into_body())
             .await
@@ -232,25 +211,5 @@ mod tests {
             .to_bytes();
         let value: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(value["error"]["code"], -32601);
-
-        server.abort();
-        upstream_handle.abort();
-    }
-
-    async fn spawn_echo_server() -> (SocketAddr, tokio::task::JoinHandle<()>) {
-        let router = TestRouter::new().route(
-            "/",
-            post(|Json(value): Json<Value>| async move { Json(value) }),
-        );
-
-        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-        let addr = listener.local_addr().unwrap();
-        let handle = tokio::spawn(async move {
-            axum::serve(listener, router)
-                .with_graceful_shutdown(async {})
-                .await
-                .unwrap();
-        });
-        (addr, handle)
     }
 }

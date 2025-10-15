@@ -11,7 +11,7 @@ pub struct Overrides {
 
 impl Overrides {
     /// Create a new overrides instance.
-    pub fn new(
+    pub const fn new(
         bind_address: Option<SocketAddr>,
         upstream_url: Option<Uri>,
         blocked_methods: Vec<String>,
@@ -24,19 +24,19 @@ impl Overrides {
     }
 
     /// Returns `true` if no overriding values were provided.
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.bind_address.is_none()
             && self.upstream_url.is_none()
             && self.blocked_methods.is_empty()
     }
 
     /// Accessor for the bind address override.
-    pub fn bind_address(&self) -> Option<SocketAddr> {
+    pub const fn bind_address(&self) -> Option<SocketAddr> {
         self.bind_address
     }
 
     /// Accessor for the upstream URL override.
-    pub fn upstream_url(&self) -> Option<&Uri> {
+    pub const fn upstream_url(&self) -> Option<&Uri> {
         self.upstream_url.as_ref()
     }
 
