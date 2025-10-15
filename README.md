@@ -3,43 +3,64 @@
 </h1>
 
 <h4 align="center">
-  <em>Concise mission statement for Veto goes here.</em>
+  Minimal, robust JSON-RPC gatekeeper for Anvil and other Ethereum dev nodes.
 </h4>
 
 <p align="center">
-  <!-- Add workflow badges when they are live -->
-  <em>Placeholder for CI, examples, and release badges.</em>
+  <em>Targeted safeguards for local testing flows that cannot afford unsafe RPC calls.</em>
 </p>
 
 <p align="center">
   <a href="#installation">Installation</a> •
+  <a href="#configuration">Configuration</a> •
   <a href="#docker">Docker</a> •
-  <a href="#what-are-evaluations?">What are Evaluations?</a> •
   <a href="#usage">Usage</a> •
   <a href="#why">Why?</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
-<!-- TODO: include demo assets once the project is ready -->
-
 ### Installation
 
 > [!NOTE]
-> Document the install path for `veto` once the crate is published or binaries are distributed.
+> `veto` is not yet published to crates.io. Install from source while we stabilize the interface.
 
 ```sh
-# Placeholder command — update once release artifacts exist.
-cargo install veto
+# Install the CLI into your cargo bin from the workspace.
+cargo install --path bin/veto
+
+# Or build a release binary in target/release/veto.
+cargo build --release -p veto
 ```
+
+`veto` targets Rust `1.88+` and ships with comprehensive tests. Run `cargo test` in the workspace to validate a local build.
+
+### Configuration
+
+`veto` reads configuration from a TOML file (defaults to `.veto.toml`) and merges it with CLI overrides. All method names are normalized to lowercase before being enforced.
+
+```toml
+# .veto.toml
+bind_address = "127.0.0.1:8546"
+upstream_url = "http://127.0.0.1:8545"
+
+blocked_methods = [
+  "anvil_setBalance",
+  "anvil_setNonce",
+  "evm_increaseTime",
+  "eth_sendTransaction"
+]
+```
+
+> [!TIP]
+> You can provide the same values at runtime with flags such as `--bind-address`, `--upstream-url`, or `--blocked-methods eth_sendtransaction,personal_sign`. CLI flags always take precedence over file values.
+
+The proxy refuses batch JSON-RPC requests and responds with a JSON-RPC error payload when a blocked method is invoked.
 
 ### Docker
 
-_Explain the container strategy for Veto — image source, multi-stage usage, and local build process._
-
-#### Using the Docker Image
+A multi-stage `Dockerfile` is included for building slim runtime images.
 
 ```dockerfile
-# Replace `your-org` and the binary path once finalized.
 FROM ghcr.io/your-org/veto-builder:latest AS veto
 
 FROM debian:bookworm-slim
@@ -47,31 +68,52 @@ COPY --from=veto /veto /usr/local/bin/veto
 ENTRYPOINT ["/usr/local/bin/veto"]
 ```
 
-#### Building Locally
+When an official image is published it will live at `ghcr.io/refcell/veto/veto-builder`. Until then you can produce the builder image locally:
 
 ```sh
+# Build the minimal scratch-based builder image containing /veto.
 just docker-build
 ```
 
-_Add context about prerequisites, caching, or additional targets as the project evolves._
-
-### What are Evaluations?
-
-_Carry over the narrative from `ploit`, tailoring the evaluation story to Veto’s objectives. Reference any research, benchmarks, or motivating trends you plan to support._
+The resulting `veto-builder` stage only ships the compiled binary, making it ideal for copy-paste into bespoke runtime images.
 
 ### Usage
 
-```
-# Outline the CLI or service interface once it is implemented.
-Usage: veto [OPTIONS] <COMMAND>
+Launch the proxy after you have an upstream Anvil (or any Ethereum JSON-RPC) node running:
+
+```sh
+# start anvil in another terminal
+anvil --port 8545
+
+# run veto in front of it
+veto \
+  --bind-address 127.0.0.1:8546 \
+  --upstream-url http://127.0.0.1:8545 \
+  --blocked-methods anvil_setbalance,eth_sendtransaction
 ```
 
-_Summarize expected subcommands, configuration files, and example workflows once they exist._
+Send RPC traffic to `http://127.0.0.1:8546`. Any blocked method receives a deterministic JSON-RPC error response:
+
+```sh
+curl -s -X POST http://127.0.0.1:8546 \
+  -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_sendTransaction","params":[]}'
+
+# -> { "jsonrpc":"2.0", "error":{ "code":-32601, "message":"Method 'eth_sendTransaction' blocked by veto proxy" }, "id":1 }
+```
+
+All other payloads are forwarded untouched to the upstream node.
 
 ### Why?
 
-_Capture the motivation for building Veto. Reuse and adapt themes from the ploit README so readers understand the problem space and Veto’s unique positioning._
+Smart contract testing frequently requires unsafe JSON-RPC helpers (e.g. `anvil_setBalance`, `evm_setNextBlockTimestamp`) that must never leak into higher-stakes environments. `veto` provides:
+
+- A focused allow/deny layer that sits in front of local Anvil or Hardhat instances.
+- Hard default blocking lists you can codify per project to de-risk automation.
+- Clear audit trails via structured logging so you know when and why a call was denied.
+
+The proxy keeps development workflows flexible while enforcing the guardrails needed for repeatable evaluation setups, CI pipelines, and shared testing infrastructure.
 
 ### Contributing
 
-_Document contribution guidelines, preferred tooling, and how to get support once the repository opens up for collaborators._
+Contributions, bug reports, and feature requests are welcome. Please open an issue or PR on GitHub so we can review the change together.
