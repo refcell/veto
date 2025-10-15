@@ -1,6 +1,7 @@
 [package]
 name = "veto-config"
 version = "0.1.0"
+description = "Configuration utilities for the Veto proxy"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

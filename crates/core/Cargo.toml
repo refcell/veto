@@ -1,6 +1,7 @@
 [package]
 name = "veto-core"
 version = "0.1.0"
+description = "Core proxy runtime for the Veto project"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
