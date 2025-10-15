@@ -22,6 +22,7 @@
 ### Installation
 
 > [!NOTE]
+>
 > `veto` is not yet published to crates.io. Install from source while we stabilize the interface.
 
 ```sh

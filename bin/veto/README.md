@@ -21,7 +21,8 @@
 
 ### Installation
 
-> [!NOTE]
+> NOTE
+>
 > `veto` is not yet published to crates.io. Install from source while we stabilize the interface.
 
 ```sh
@@ -51,7 +52,8 @@ blocked_methods = [
 ]
 ```
 
-> [!TIP]
+> TIP
+>
 > You can provide the same values at runtime with flags such as `--bind-address`, `--upstream-url`, or `--blocked-methods eth_sendtransaction,personal_sign`. CLI flags always take precedence over file values.
 
 The proxy refuses batch JSON-RPC requests and responds with a JSON-RPC error payload when a blocked method is invoked.
