@@ -61,7 +61,7 @@ The proxy refuses batch JSON-RPC requests and responds with a JSON-RPC error pay
 A multi-stage `Dockerfile` is included for building slim runtime images.
 
 ```dockerfile
-FROM ghcr.io/your-org/veto-builder:latest AS veto
+FROM ghcr.io/refcell/veto-builder:latest AS veto
 
 FROM debian:bookworm-slim
 COPY --from=veto /veto /usr/local/bin/veto
