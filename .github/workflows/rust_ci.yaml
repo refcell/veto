@@ -1,0 +1,31 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: taiki-e/install-action@just
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Format check
+        run: just fmt-check
+      - name: Clippy
+        run: just lint
+      - name: Tests
+        run: just test
