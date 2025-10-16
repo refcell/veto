@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml Cargo.lock ./
 COPY bin ./bin
 COPY crates ./crates
+COPY examples ./examples
 COPY Justfile ./Justfile
 
 # Build the release binary
