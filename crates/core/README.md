@@ -4,10 +4,10 @@ Core runtime for the Veto JSON-RPC proxy.
 
 ## Features
 
-- **Runtime** – [`run`] bootstraps the Axum server with graceful shutdown handling
-- **Proxy Engine** – internal router forwards requests to the configured upstream while honoring blocklists
-- **JSON-RPC Validation** – strict parsing guards against malformed or batch requests before forwarding
-- **Error Reporting** – consistent JSON-RPC error payloads and rich [`ProxyError`] diagnostics for callers
+- **Runtime** – [`run`] bootstraps the Axum server, binds to the requested socket, and awaits Ctrl+C for shutdown
+- **Proxy Engine** – [`router`] wires handlers around [`AppState`] so the proxy can forward or block JSON-RPC calls
+- **JSON-RPC Validation** – strict parsing guards against malformed payloads and rejects batch requests up front
+- **Error Reporting** – deterministic error payloads and rich [`ProxyError`] diagnostics for callers
 
 ## Usage
 

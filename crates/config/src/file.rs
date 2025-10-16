@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-/// Representation of the TOML configuration file.
+/// Representation of the on-disk `.veto.toml` configuration.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub struct FileConfig {
     /// Address the proxy should bind to.
@@ -14,7 +14,7 @@ pub struct FileConfig {
     pub blocked_methods: Option<Vec<String>>,
 }
 
-/// Parse and load the configuration file if it exists.
+/// Parse and load the configuration file, returning `Ok(None)` when it is missing.
 pub fn load_file(path: &Path) -> Result<Option<FileConfig>, ConfigError> {
     if !path.exists() {
         return Ok(None);

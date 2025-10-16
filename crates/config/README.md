@@ -7,7 +7,8 @@ Configuration management for the Veto JSON-RPC proxy.
 - **Configuration File** – [`FileConfig`] mirrors the on-disk `.veto.toml`
 - **CLI Overrides** – [`Overrides`] captures runtime flags and environment tweaks
 - **Resolution Pipeline** – [`resolve_config`] merges defaults, files, and overrides into a [`Config`]
-- **Defaults** – `DEFAULT_BIND_ADDRESS`, `DEFAULT_UPSTREAM_URL`, `DEFAULT_CONFIG_PATH` centralize proxy constants
+- **Defaults** – [`DEFAULT_BIND_ADDRESS`], [`DEFAULT_UPSTREAM_URL`], [`DEFAULT_CONFIG_PATH`] centralize proxy constants
+- **Normalization** – method names are trimmed, lowercased, and deduplicated before reaching the runtime
 
 ## Usage
 

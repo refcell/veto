@@ -1,4 +1,4 @@
-//! Contains the CLI logic for the veto application.
+//! CLI entry point that resolves configuration and launches the proxy runtime.
 
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -6,12 +6,13 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use clap::Parser;
 use http::Uri;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use veto_config::{Config, DEFAULT_CONFIG_PATH, FileConfig, Overrides, load_file, resolve_config};
 
-/// Execute the veto CLI workflow.
+/// Parse CLI arguments, resolve a [`Config`], and run the proxy.
 pub(crate) async fn run() -> Result<()> {
     let cli = Cli::parse();
+    debug!(config_path = %cli.config.display(), "parsed CLI arguments");
     let config = cli.resolve_configuration()?;
 
     log_configuration(&config);
@@ -61,6 +62,7 @@ struct Cli {
 }
 
 impl Cli {
+    /// Merge `.veto.toml` (if present) with CLI overrides into a [`Config`].
     fn resolve_configuration(&self) -> Result<Config> {
         let file_config = self.load_file_configuration()?;
         let overrides = Overrides::new(
@@ -69,11 +71,39 @@ impl Cli {
             self.blocked_methods.clone(),
         );
 
-        Ok(resolve_config(file_config, overrides)?)
+        if overrides.is_empty() {
+            debug!("no CLI overrides supplied");
+        } else {
+            debug!(
+                bind_override = ?self.bind_address,
+                upstream_override = ?self.upstream_url,
+                blocked_override_count = self.blocked_methods.len(),
+                "applying CLI overrides"
+            );
+        }
+
+        let config = resolve_config(file_config, overrides)?;
+        debug!(
+            bind_address = %config.bind_address(),
+            upstream_url = %config.upstream_url(),
+            blocked_methods = config.blocked_methods().len(),
+            "resolved effective configuration"
+        );
+
+        Ok(config)
     }
 
+    /// Attempt to load a [`FileConfig`] from disk.
     fn load_file_configuration(&self) -> Result<Option<FileConfig>> {
         let file_config = load_file(self.config.as_path())?;
+
+        if let Some(ref file) = file_config {
+            debug!(
+                path = %self.config.display(),
+                blocked_methods = file.blocked_methods.as_ref().map_or(0, |methods| methods.len()),
+                "loaded configuration file"
+            );
+        }
 
         if file_config.is_none() && self.config.as_path() != Path::new(DEFAULT_CONFIG_PATH) {
             warn!(

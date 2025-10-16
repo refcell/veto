@@ -7,10 +7,10 @@ use serde_json::{Value, json};
 /// Inbound JSON-RPC request payload.
 #[derive(Debug, Deserialize)]
 pub struct JsonRpcRequest {
-    /// JSON-RPC version, should be "2.0".
+    /// Method invoked by the request.
     #[serde(default)]
     pub method: String,
-    /// The method to be invoked.
+    /// Identifier echoed back to the caller as a [`Value`].
     #[serde(default)]
     pub id: Value,
 }
@@ -26,7 +26,7 @@ pub enum JsonRpcError {
     Unsupported(String),
 }
 
-/// Parse bytes into a [`JsonRpcRequest`], validating the shape along the way.
+/// Parse bytes into a [`JsonRpcRequest`], rejecting batch payloads and empty methods.
 pub(crate) fn parse_json_rpc(body: &[u8]) -> Result<JsonRpcRequest, JsonRpcError> {
     if body.is_empty() {
         return Err(JsonRpcError::InvalidRequest("empty body".into()));

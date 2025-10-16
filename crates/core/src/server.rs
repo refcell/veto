@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{debug, error, warn};
 use veto_config::Config;
 
 /// State shared across all request handlers.
@@ -27,21 +27,32 @@ pub struct AppState {
 }
 
 impl AppState {
-    /// Create a new application state from the provided configuration.
+    /// Create a new [`AppState`] from the resolved [`Config`].
     pub fn try_from_config(config: Config) -> Result<Self, ProxyError> {
         let mut connector = HttpConnector::new();
         connector.enforce_http(false);
         let client = Client::builder(TokioExecutor::new()).build(connector);
 
+        let bind_address = config.bind_address();
+        let upstream = config.upstream_url().clone();
+        let blocked_methods = Arc::new(config.blocked_methods().clone());
+
+        debug!(
+            %bind_address,
+            upstream = %config.upstream_url(),
+            blocked_methods = blocked_methods.len(),
+            "initializing app state"
+        );
+
         Ok(Self {
-            bind_address: config.bind_address(),
-            upstream: config.upstream_url().clone(),
-            blocked_methods: Arc::new(config.blocked_methods().clone()),
+            bind_address,
+            upstream,
+            blocked_methods,
             client,
         })
     }
 
-    /// The address the server will bind to.
+    /// Socket address bound by the proxy.
     pub const fn bind_address(&self) -> SocketAddr {
         self.bind_address
     }
@@ -57,7 +68,7 @@ async fn proxy_handler(State(state): State<AppState>, req: Request<Body>) -> Res
         Ok(response) => response,
         Err(HandlerError::JsonRpc(response)) => response,
         Err(HandlerError::Internal(error)) => {
-            error!("unexpected proxy error: {error}");
+            error!(error = ?error, "proxy handler failed");
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from("internal server error"))
@@ -66,26 +77,50 @@ async fn proxy_handler(State(state): State<AppState>, req: Request<Body>) -> Res
     }
 }
 
+/// Validate the JSON-RPC payload, blocking or forwarding it upstream as needed.
 async fn process_request(state: &AppState, req: Request<Body>) -> Result<Response, HandlerError> {
     let (parts, body) = req.into_parts();
-    let collected = body
-        .collect()
-        .await
-        .map_err(|error| HandlerError::from(ProxyError::Body(Box::new(error))))?;
+    let collected = body.collect().await.map_err(|error| {
+        error!(error = ?error, "failed to read request body");
+        HandlerError::from(ProxyError::Body(Box::new(error)))
+    })?;
     let bytes = collected.to_bytes();
 
-    let json_rpc = parse_json_rpc(&bytes).map_err(HandlerError::from)?;
+    let json_rpc = match parse_json_rpc(&bytes) {
+        Ok(request) => {
+            debug!(method = %request.method, "received json-rpc request");
+            request
+        }
+        Err(error) => {
+            debug!(error = ?error, "rejecting json-rpc payload");
+            return Err(HandlerError::from(error));
+        }
+    };
     let normalized_method = json_rpc.method.to_ascii_lowercase();
 
     if state.blocked_methods.contains(&normalized_method) {
+        warn!(method = %json_rpc.method, "blocked json-rpc method");
         let error_payload = blocked_method_response(&json_rpc.id, &json_rpc.method);
         return Ok(error_payload);
     }
 
-    let target_uri = build_target_uri(&state.upstream, &parts.uri).map_err(HandlerError::from)?;
+    let target_uri = match build_target_uri(&state.upstream, &parts.uri) {
+        Ok(uri) => uri,
+        Err(error) => {
+            error!(
+                error = ?error,
+                incoming = %parts.uri,
+                upstream = %state.upstream,
+                "failed to construct upstream uri"
+            );
+            return Err(HandlerError::from(error));
+        }
+    };
+
+    debug!(method = %json_rpc.method, upstream = %target_uri, "forwarding json-rpc request");
 
     let mut forward_parts = parts;
-    forward_parts.uri = target_uri;
+    forward_parts.uri = target_uri.clone();
 
     let mut forward_request = Request::from_parts(forward_parts, Body::from(bytes));
     sanitize_request_headers(forward_request.headers_mut());
@@ -94,16 +129,26 @@ async fn process_request(state: &AppState, req: Request<Body>) -> Result<Respons
         .client
         .request(forward_request)
         .await
-        .map_err(|error| HandlerError::from(ProxyError::Upstream(error)))?
+        .map_err(|error| {
+            error!(
+                error = ?error,
+                method = %json_rpc.method,
+                upstream = %target_uri,
+                "upstream request failed"
+            );
+            HandlerError::from(ProxyError::Upstream(error))
+        })?
         .map(Body::new);
 
     Ok(response)
 }
 
+/// Remove hop-by-hop headers before forwarding the request upstream.
 fn sanitize_request_headers(headers: &mut HeaderMap) {
     headers.remove("host");
 }
 
+/// Build the JSON-RPC error [`Response`] sent when a method is blocked.
 fn blocked_method_response(id: &Value, method: &str) -> Response {
     let payload = json!({
         "jsonrpc": "2.0",
@@ -121,6 +166,7 @@ fn blocked_method_response(id: &Value, method: &str) -> Response {
         .expect("valid blocked response")
 }
 
+/// Construct the upstream [`Uri`] by combining the base host with the incoming path/query.
 fn build_target_uri(base: &Uri, incoming: &Uri) -> Result<Uri, ProxyError> {
     let mut parts = base.clone().into_parts();
     if let Some(path_and_query) = incoming.path_and_query() {

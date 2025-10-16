@@ -13,11 +13,19 @@
 <p align="center">
   <a href="#installation">Installation</a> •
   <a href="#configuration">Configuration</a> •
+  <a href="#features">Features</a> •
   <a href="#docker">Docker</a> •
   <a href="#usage">Usage</a> •
   <a href="#why">Why?</a> •
   <a href="#contributing">Contributing</a>
 </p>
+
+### Features
+
+- Deterministic JSON-RPC filtering with lowercase method matching and batch rejection.
+- Fast proxy built on Axum that forwards permissible payloads untouched to the upstream node.
+- TOML + CLI configuration merger with sensible defaults for bind address and upstream URL.
+- Structured tracing with INFO/WARN/ERROR logs for start-up, blocked calls, and shutdown events.
 
 ### Installation
 
@@ -37,11 +45,11 @@ cargo build --release -p veto
 
 ### Configuration
 
-`veto` reads configuration from a TOML file (defaults to `.veto.toml`) and merges it with CLI overrides. All method names are normalized to lowercase before being enforced.
+`veto` reads configuration from a TOML file (defaults to `.veto.toml`) and merges it with CLI overrides. Defaults resolve to `0.0.0.0:8546` for the bind address and `http://127.0.0.1:8545` for the upstream. All method names are normalized to lowercase before being enforced, and duplicate entries collapse automatically.
 
 ```toml
 # .veto.toml
-bind_address = "127.0.0.1:8546"
+bind_address = "0.0.0.0:8546"
 upstream_url = "http://127.0.0.1:8545"
 
 blocked_methods = [
@@ -59,7 +67,7 @@ The proxy refuses batch JSON-RPC requests and responds with a JSON-RPC error pay
 
 ### Docker
 
-A multi-stage `Dockerfile` is included for building slim runtime images.
+A multi-stage `Dockerfile` is included for building slim runtime images. It produces a builder stage that compiles the proxy and emits a minimal copy stage with the resulting binary.
 
 ```dockerfile
 FROM ghcr.io/refcell/veto-builder:latest AS veto
@@ -93,7 +101,7 @@ veto \
   --blocked-methods anvil_setbalance,eth_sendtransaction
 ```
 
-Send RPC traffic to `http://127.0.0.1:8546`. Any blocked method receives a deterministic JSON-RPC error response:
+Send RPC traffic to `http://127.0.0.1:8546` (or the bind address you configure). Any blocked method receives a deterministic JSON-RPC error response and the event is logged:
 
 ```sh
 curl -s -X POST http://127.0.0.1:8546 \

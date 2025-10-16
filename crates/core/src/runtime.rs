@@ -2,14 +2,15 @@ use crate::errors::ProxyError;
 use crate::server::{AppState, router};
 use axum::serve;
 use tokio::net::TcpListener;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use veto_config::Config;
 
-/// Entry point for running the proxy server until shutdown.
+/// Run the proxy server with the provided [`Config`] until shutdown.
 pub async fn run(config: Config) -> Result<(), ProxyError> {
     let state = AppState::try_from_config(config)?;
     let bind_address = state.bind_address();
 
+    debug!(%bind_address, "binding proxy listener");
     let listener = TcpListener::bind(bind_address)
         .await
         .map_err(ProxyError::Bind)?;
@@ -22,8 +23,10 @@ pub async fn run(config: Config) -> Result<(), ProxyError> {
         .map_err(ProxyError::Server)
 }
 
+/// Await Ctrl+C and log the shutdown outcome.
 async fn shutdown_signal() {
-    if let Err(error) = tokio::signal::ctrl_c().await {
-        error!("failed to listen for shutdown signal: {error}");
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => info!("shutdown signal received"),
+        Err(error) => error!("failed to listen for shutdown signal: {error}"),
     }
 }

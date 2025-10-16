@@ -10,7 +10,7 @@ pub struct Overrides {
 }
 
 impl Overrides {
-    /// Create a new overrides instance.
+    /// Create a new [`Overrides`] container around optional CLI values.
     pub const fn new(
         bind_address: Option<SocketAddr>,
         upstream_url: Option<Uri>,
