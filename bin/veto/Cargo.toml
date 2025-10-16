@@ -1,6 +1,7 @@
 [package]
 name = "veto"
 version = "0.1.0"
+description = "Minimal, robust JSON-RPC gatekeeper for Anvil and other Ethereum nodes."
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
