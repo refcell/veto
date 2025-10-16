@@ -43,6 +43,7 @@ debug = true
 # Workspace
 veto-core = { path = "crates/core", version = "0.1.0" }
 veto-config = { path = "crates/config", version = "0.1.0" }
+veto-blocked = { path = "crates/blocked", version = "0.1.0" }
 
 # General
 rstest = "0.26.1"

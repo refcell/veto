@@ -16,52 +16,14 @@ use anyhow::{Context, Result, anyhow};
 use http::Uri;
 use reqwest::Client;
 use serde_json::{Value, json};
-use std::collections::HashSet;
 use std::env;
 use std::net::{SocketAddr, TcpListener};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::sleep;
-use veto_config::Config;
+use veto_blocked::AnvilBlocked;
 use veto_core::run;
-
-/// All documented Anvil custom RPC methods.
-const CUSTOM_ANVIL_METHODS: &[&str] = &[
-    "anvil_autoImpersonateAccount",
-    "anvil_dropTransaction",
-    "anvil_dumpState",
-    "anvil_enableTraces",
-    "anvil_getAutomine",
-    "anvil_impersonateAccount",
-    "anvil_increaseTime",
-    "anvil_loadState",
-    "anvil_metadata",
-    "anvil_mine",
-    "anvil_mine_detailed",
-    "anvil_nodeInfo",
-    "anvil_removeBlockTimestampInterval",
-    "anvil_reset",
-    "anvil_revert",
-    "anvil_setAutomine",
-    "anvil_setBalance",
-    "anvil_setBlockGasLimit",
-    "anvil_setBlockTimestampInterval",
-    "anvil_setChainId",
-    "anvil_setCode",
-    "anvil_setCoinbase",
-    "anvil_setIntervalMining",
-    "anvil_setLoggingEnabled",
-    "anvil_setMinGasPrice",
-    "anvil_setNextBlockBaseFeePerGas",
-    "anvil_setNextBlockTimestamp",
-    "anvil_setNonce",
-    "anvil_setRpcUrl",
-    "anvil_setStorageAt",
-    "anvil_setTime",
-    "anvil_snapshot",
-    "anvil_stopImpersonatingAccount",
-];
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -75,7 +37,7 @@ async fn main() -> Result<()> {
 
     let proxy_addr = SocketAddr::from(([127, 0, 0, 1], proxy_port));
     let upstream: Uri = format!("http://127.0.0.1:{anvil_port}").parse().unwrap();
-    let config = Config::new(proxy_addr, upstream, blocked_methods());
+    let config = AnvilBlocked::new(proxy_addr, upstream).into_config();
 
     let proxy_task = tokio::spawn(async move {
         if let Err(error) = run(config).await {
@@ -86,7 +48,7 @@ async fn main() -> Result<()> {
 
     println!("Proxy ready at http://{proxy_addr}");
     println!("Blocked methods:");
-    for method in CUSTOM_ANVIL_METHODS {
+    for method in AnvilBlocked::methods() {
         println!("  - {method}");
     }
     println!();
@@ -104,13 +66,6 @@ async fn main() -> Result<()> {
     terminate(&mut anvil, "Anvil")?;
 
     Ok(())
-}
-
-fn blocked_methods() -> HashSet<String> {
-    CUSTOM_ANVIL_METHODS
-        .iter()
-        .map(|method| method.to_ascii_lowercase())
-        .collect()
 }
 
 fn reserve_port(reason: &str) -> Result<u16> {
@@ -153,8 +108,8 @@ async fn exercise_methods(address: SocketAddr) -> Result<Vec<(String, String)>> 
     let client = Client::new();
     let url = format!("http://{address}");
 
-    let mut results = Vec::with_capacity(CUSTOM_ANVIL_METHODS.len());
-    for method in CUSTOM_ANVIL_METHODS {
+    let mut results = Vec::with_capacity(AnvilBlocked::methods().len());
+    for method in AnvilBlocked::methods() {
         let payload = json!({
             "jsonrpc": "2.0",
             "id": method,
@@ -178,7 +133,7 @@ async fn exercise_methods(address: SocketAddr) -> Result<Vec<(String, String)>> 
             .unwrap_or("unexpected response")
             .to_string();
 
-        results.push((method.to_string(), message));
+        results.push(((*method).to_string(), message));
     }
 
     Ok(results)
