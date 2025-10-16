@@ -1,8 +1,8 @@
-use crate::config::Config;
-use crate::constants::{DEFAULT_BIND_ADDRESS, DEFAULT_UPSTREAM_URL};
-use crate::errors::ConfigError;
-use crate::file::FileConfig;
-use crate::overrides::Overrides;
+use crate::Config;
+use crate::ConfigError;
+use crate::FileConfig;
+use crate::Overrides;
+use crate::{DEFAULT_BIND_ADDRESS, DEFAULT_UPSTREAM_URL};
 use http::Uri;
 use std::collections::HashSet;
 use std::net::SocketAddr;

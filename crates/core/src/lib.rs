@@ -8,9 +8,13 @@
 #![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod errors;
-mod jsonrpc;
-mod runtime;
-mod server;
-
 pub use errors::ProxyError;
+
+mod jsonrpc;
+pub use jsonrpc::{JsonRpcError, JsonRpcRequest};
+
+mod runtime;
 pub use runtime::run;
+
+mod server;
+pub use server::{AppState, router};

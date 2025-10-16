@@ -1,3 +1,5 @@
+//! Constants used by the configuration.
+
 /// Default socket address the proxy binds to.
 pub const DEFAULT_BIND_ADDRESS: &str = "0.0.0.0:8546";
 

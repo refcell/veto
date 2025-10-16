@@ -17,8 +17,9 @@ use std::sync::Arc;
 use tracing::error;
 use veto_config::Config;
 
-#[derive(Clone)]
-pub(crate) struct AppState {
+/// State shared across all request handlers.
+#[derive(Debug, Clone)]
+pub struct AppState {
     bind_address: SocketAddr,
     upstream: Uri,
     blocked_methods: Arc<HashSet<String>>,
@@ -26,7 +27,8 @@ pub(crate) struct AppState {
 }
 
 impl AppState {
-    pub(crate) fn try_from_config(config: Config) -> Result<Self, ProxyError> {
+    /// Create a new application state from the provided configuration.
+    pub fn try_from_config(config: Config) -> Result<Self, ProxyError> {
         let mut connector = HttpConnector::new();
         connector.enforce_http(false);
         let client = Client::builder(TokioExecutor::new()).build(connector);
@@ -39,12 +41,14 @@ impl AppState {
         })
     }
 
-    pub(crate) const fn bind_address(&self) -> SocketAddr {
+    /// The address the server will bind to.
+    pub const fn bind_address(&self) -> SocketAddr {
         self.bind_address
     }
 }
 
-pub(crate) fn router(state: AppState) -> Router {
+/// Constructs a new Axum [`Router`] with the provided application state.
+pub fn router(state: AppState) -> Router {
     Router::new().fallback(any(proxy_handler)).with_state(state)
 }
 
