@@ -37,15 +37,16 @@
 
 ### Installation
 
-> NOTE
->
-> `veto` is not yet published to crates.io. Install from source while we stabilize the interface.
+> NOTE: `veto` is available on [crates.io](https://crates.io/crates/veto); install it with `cargo install veto`. Building from source remains available if you are hacking on the workspace.
 
 ```sh
-# Install the CLI into your cargo bin from the workspace.
+# Install the CLI from crates.io.
+cargo install veto
+
+# Or install the workspace binary while developing locally.
 cargo install --path bin/veto
 
-# Or build a release binary in target/release/veto.
+# Build a release binary directly when you need artifacts.
 cargo build --release -p veto
 ```
 
