@@ -11,12 +11,7 @@ exclude = ["**/target"]
 
 [workspace]
 resolver = "2"
-members = [
-    "bin/veto",
-    "crates/*",
-    "examples/anvil-veto-allow-all",
-    "examples/anvil-veto-blocklist",
-]
+members = ["bin/veto", "crates/*", "examples/*"]
 default-members = ["bin/veto"]
 
 [workspace.lints.rust]
