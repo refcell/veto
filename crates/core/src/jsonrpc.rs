@@ -6,18 +6,23 @@ use serde_json::{Value, json};
 
 /// Inbound JSON-RPC request payload.
 #[derive(Debug, Deserialize)]
-pub(crate) struct JsonRpcRequest {
+pub struct JsonRpcRequest {
+    /// JSON-RPC version, should be "2.0".
     #[serde(default)]
     pub method: String,
+    /// The method to be invoked.
     #[serde(default)]
     pub id: Value,
 }
 
 /// Errors produced while decoding JSON-RPC payloads.
 #[derive(Debug)]
-pub(crate) enum JsonRpcError {
+pub enum JsonRpcError {
+    /// Error parsing JSON.
     InvalidJson(serde_json::Error),
+    /// The request is not a valid JSON-RPC request.
     InvalidRequest(String),
+    /// The request is a batch request, which is not supported.
     Unsupported(String),
 }
 

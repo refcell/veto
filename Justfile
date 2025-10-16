@@ -81,12 +81,14 @@ hack:
 
 # Build all example binaries.
 examples-build:
-  cargo check -p veto --examples
+  cargo check --package anvil-veto-blocklist
+  cargo check --package anvil-veto-allow-all
 
 # Run all example binaries.
 examples:
   just examples-build
-  cargo run -p veto --example anvil_veto_blocklist
+  cargo run --package anvil-veto-blocklist
+  cargo run --package anvil-veto-allow-all
 
 # Check for unused dependencies in the workspace.
 check-udeps:

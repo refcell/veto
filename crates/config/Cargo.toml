@@ -16,10 +16,16 @@ exclude.workspace = true
 workspace = true
 
 [dependencies]
+# HTTP
 http = { workspace = true }
-serde = { workspace = true }
+
+# Serialization
+serde = { version = "1.0.228", default-features = false, features = ["derive"] }
+toml = { version = "0.9.8", default-features = false, features = ["parse", "serde", "std"] }
+
+# Errors
 thiserror = { workspace = true }
-toml = { workspace = true }
 
 [dev-dependencies]
-rstest = { workspace = true }
+# Testing
+rstest = { version = "0.26.1", default-features = false }
