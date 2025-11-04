@@ -11,7 +11,10 @@ mod config;
 pub use config::Config;
 
 mod constants;
-pub use constants::{DEFAULT_BIND_ADDRESS, DEFAULT_CONFIG_PATH, DEFAULT_UPSTREAM_URL};
+pub use constants::{
+    ANVIL_BLOCKED_METHODS, DEFAULT_BIND_ADDRESS, DEFAULT_CONFIG_PATH, DEFAULT_UPSTREAM_URL,
+    EVM_BLOCKED_METHODS, default_blocked_methods,
+};
 
 mod errors;
 pub use errors::ConfigError;

@@ -11,4 +11,4 @@ mod anvil;
 pub use anvil::AnvilBlocked;
 
 mod methods;
-pub use methods::{ANVIL_METHODS, blocked_method_set};
+pub use methods::{ANVIL_METHODS, EVM_METHODS, blocked_method_set, default_method_list};

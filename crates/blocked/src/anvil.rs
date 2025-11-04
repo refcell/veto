@@ -1,9 +1,9 @@
-use crate::methods::{ANVIL_METHODS, blocked_method_set};
+use crate::methods::{ANVIL_METHODS, EVM_METHODS, blocked_method_set, default_method_list};
 use http::Uri;
 use std::net::SocketAddr;
 use veto_config::Config;
 
-/// Preconfigured Veto instance that blocks all documented Anvil-specific RPC methods.
+/// Preconfigured Veto instance that blocks Anvil- and Hardhat-specific RPC helpers.
 #[derive(Debug, Clone)]
 pub struct AnvilBlocked {
     bind_address: SocketAddr,
@@ -29,9 +29,19 @@ impl AnvilBlocked {
         &self.upstream_url
     }
 
-    /// All Anvil methods blocked by this preset.
-    pub const fn methods() -> &'static [&'static str] {
+    /// All JSON-RPC helpers blocked by this preset.
+    pub fn methods() -> Vec<&'static str> {
+        default_method_list()
+    }
+
+    /// Only the Anvil-specific methods blocked by this preset.
+    pub const fn anvil_methods() -> &'static [&'static str] {
         ANVIL_METHODS
+    }
+
+    /// Hardhat/Ganache `evm_*` helpers blocked by this preset.
+    pub const fn evm_methods() -> &'static [&'static str] {
+        EVM_METHODS
     }
 
     /// Convert the preset into a [`Config`].
@@ -52,5 +62,17 @@ impl AnvilBlocked {
 impl From<AnvilBlocked> for Config {
     fn from(value: AnvilBlocked) -> Self {
         value.into_config()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn methods_include_anvil_and_evm_helpers() {
+        let methods = AnvilBlocked::methods();
+        assert!(methods.contains(&"anvil_setBalance"));
+        assert!(methods.contains(&"evm_mine"));
     }
 }

@@ -12,7 +12,7 @@ Ready-to-use blocklists for the Veto JSON-RPC proxy.
 
 ## Presets
 
-- **Anvil** – [`AnvilBlocked`] wires Veto in front of an Anvil node and blocks every `anvil_*` method the node exposes.
+- **Anvil** – [`AnvilBlocked`] wires Veto in front of an Anvil node and blocks every `anvil_*` method the node exposes, alongside Hardhat/Ganache-style `evm_*` helpers.
 
 ## Usage
 
