@@ -2,7 +2,7 @@ use crate::Config;
 use crate::ConfigError;
 use crate::FileConfig;
 use crate::Overrides;
-use crate::{DEFAULT_BIND_ADDRESS, DEFAULT_UPSTREAM_URL};
+use crate::{DEFAULT_BIND_ADDRESS, DEFAULT_UPSTREAM_URL, default_blocked_methods};
 use http::Uri;
 use std::collections::HashSet;
 use std::net::SocketAddr;
@@ -38,7 +38,9 @@ pub fn resolve_config(
         parse_uri(DEFAULT_UPSTREAM_URL)?
     };
 
-    let mut blocked_methods: HashSet<String> = HashSet::new();
+    let mut blocked_methods: HashSet<String> = default_blocked_methods()
+        .map(|method| method.to_ascii_lowercase())
+        .collect();
     blocked_methods.extend(
         file_methods
             .into_iter()
@@ -93,7 +95,10 @@ mod tests {
             config.upstream_url(),
             &parse_uri(DEFAULT_UPSTREAM_URL).unwrap()
         );
-        assert!(config.blocked_methods().is_empty());
+        let expected: HashSet<String> = default_blocked_methods()
+            .map(|method| method.to_ascii_lowercase())
+            .collect();
+        assert_eq!(config.blocked_methods(), &expected);
     }
 
     #[rstest]
@@ -168,7 +173,8 @@ mod tests {
         };
 
         let config = resolve_config(Some(file), Overrides::default()).expect("config resolves");
-        assert_eq!(config.blocked_methods().len(), 1);
+        let default_count = default_blocked_methods().count();
+        assert_eq!(config.blocked_methods().len(), default_count + 1);
         assert!(config.blocked_methods().contains("eth_call"));
     }
 }

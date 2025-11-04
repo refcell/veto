@@ -56,7 +56,7 @@ cargo build --release -p veto
 
 ### Configuration
 
-`veto` reads configuration from a TOML file (defaults to `.veto.toml`) and merges it with CLI overrides. Defaults resolve to `0.0.0.0:8546` for the bind address and `http://127.0.0.1:8545` for the upstream. All method names are normalized to lowercase before being enforced, and duplicate entries collapse automatically.
+`veto` reads configuration from a TOML file (defaults to `.veto.toml`) and merges it with CLI overrides. Defaults resolve to `0.0.0.0:8546` for the bind address and `http://127.0.0.1:8545` for the upstream. Out of the box it blocks every documented `anvil_*` helper together with Hardhat/Ganache `evm_*` methods. All method names are normalized to lowercase before being enforced, and duplicate entries collapse automatically.
 
 ```toml
 # .veto.toml
